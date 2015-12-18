@@ -1,4 +1,4 @@
-package com.czp.opensrource.redis.net;
+package com.czp.opensource.redis.net;
 
 import java.io.IOException;
 import java.util.Map;
@@ -16,9 +16,10 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.czp.opensrource.redis.cmd.ErrorReplay;
-import com.czp.opensrource.redis.cmd.Replay;
-import com.czp.opensrource.redis.cmd.handler.CmdHandler;
+import com.czp.opensource.redis.cmd.ErrorReplay;
+import com.czp.opensource.redis.cmd.Replay;
+import com.czp.opensource.redis.cmd.handler.CmdHandler;
+import com.czp.opensource.redis.cmd.manger.CmdRecoder;
 
 /***
  * 
@@ -42,11 +43,12 @@ import com.czp.opensrource.redis.cmd.handler.CmdHandler;
 public class ProxyServer extends BaseFilter {
 
 	private int port;
+	private CmdRecoder recoder;
 	private TCPNIOTransport server;
 	private Logger log = LoggerFactory.getLogger(ProxyServer.class);
 	private Map<String, CmdHandler> handlers = new ConcurrentHashMap<String, CmdHandler>();
 
-	public ProxyServer(int port) {
+	public ProxyServer(int port, CmdRecoder cmdRecoder) {
 
 		FilterChainBuilder fcBuilder = FilterChainBuilder.stateless();
 		fcBuilder.add(new TransportFilter());
@@ -54,6 +56,7 @@ public class ProxyServer extends BaseFilter {
 
 		this.server = TCPNIOTransportBuilder.newInstance().build();
 		this.server.setProcessor(fcBuilder.build());
+		this.recoder = cmdRecoder;
 		this.port = port;
 	}
 
@@ -69,37 +72,43 @@ public class ProxyServer extends BaseFilter {
 
 	@Override
 	public NextAction handleRead(FilterChainContext ctx) throws IOException {
-		Buffer msg = ctx.getMessage();
-		msg.allowBufferDispose(true);
+		Buffer buf = ctx.getMessage();
+		buf.allowBufferDispose(true);
 
 		try {
-			msg.mark();
+			buf.mark();
 			if (log.isDebugEnabled()) {
-				String strMsg = msg.toStringContent();
+				String strMsg = buf.toStringContent();
 				strMsg = strMsg.replaceAll("\r\n", "");
 				log.debug("recive[{}]-[{}]", ctx.getAddress(), strMsg);
 			}
 
-			if ('*' != msg.get(0)) {
+			Replay replay;
+			String strCmd;
+			if ('*' != buf.get(0)) {
 				/* inLine command only support ping-pong */
-				writeToClient(ctx, Replay.PONG);
-				return ctx.getStopAction();
+				strCmd = buf.toStringContent().trim();
+				replay = Replay.PONG;
+			} else {
+				int argCount = decodeLength(buf);
+				byte[] cmdBytes = decodeOneArg(buf);
+				strCmd = new String(cmdBytes).toLowerCase();
+				CmdHandler handler = handlers.get(strCmd);
+				if (handler == null) {
+					replay = new ErrorReplay("Unknow cmd:" + strCmd);
+				} else {
+					/* argCount contain cmd,so reduce 1 */
+					replay = handler.handle(decodeAllArgs(argCount - 1, buf));
+				}
 			}
 
-			decodeLength(msg);// argCount
-			byte[] cmd = decodeOneArg(msg);
-			String strCmd = new String(cmd);
-			CmdHandler handler = handlers.get(strCmd.toLowerCase());
-			if (handler != null) {
-				writeToClient(ctx, handler.handle(strCmd));
-			} else {
-				writeToClient(ctx, new ErrorReplay("Unknow cmd:" + strCmd));
-			}
+			writeToClient(ctx, replay);
+			recoder.recode(strCmd, ctx.getAddress());
 
 		} catch (Exception e) {
 			Object addr = ctx.getAddress();
 			ctx.getConnection().closeSilently();
-			log.error("read error:{}-{}", addr, msg.toStringContent(), e);
+			log.error("read error:{}-{}", addr, buf.toStringContent(), e);
 		}
 
 		return ctx.getStopAction();

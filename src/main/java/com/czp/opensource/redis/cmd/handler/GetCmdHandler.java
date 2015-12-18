@@ -1,7 +1,7 @@
-package com.czp.opensrource.redis.cmd.handler;
+package com.czp.opensource.redis.cmd.handler;
 
-import com.czp.opensrource.redis.cmd.BulkReply;
-import com.czp.opensrource.redis.cmd.Replay;
+import com.czp.opensource.redis.cmd.BulkReply;
+import com.czp.opensource.redis.cmd.Replay;
 
 /**
  * Function:处理Get命令<br>
@@ -27,7 +27,7 @@ public class GetCmdHandler implements CmdHandler {
 	 * @see
 	 * com.czp.opensrource.redis.cmd.handler.CmdHandler#handle(java.lang.String)
 	 */
-	public Replay handle(String strCmd) {
+	public Replay handle(byte[][] args) {
 		return new BulkReply("testing".getBytes());
 	}
 

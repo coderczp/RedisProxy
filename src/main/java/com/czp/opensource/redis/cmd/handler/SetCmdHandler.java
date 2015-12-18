@@ -1,7 +1,7 @@
-package com.czp.opensrource.redis.cmd.handler;
+package com.czp.opensource.redis.cmd.handler;
 
-import com.czp.opensrource.redis.cmd.MultiBulkReply;
-import com.czp.opensrource.redis.cmd.Replay;
+import com.czp.opensource.redis.cmd.MultiBulkReply;
+import com.czp.opensource.redis.cmd.Replay;
 
 /**
  * Function:处理Set命令<br>
@@ -27,7 +27,7 @@ public class SetCmdHandler implements CmdHandler {
 	 * @see
 	 * com.czp.opensrource.redis.cmd.handler.CmdHandler#handle(java.lang.String)
 	 */
-	public Replay handle(String strCmd) {
+	public Replay handle(byte[][] args) {
 		MultiBulkReply b = new MultiBulkReply();
 		b.add("ddd".getBytes());
 		b.add("ccc".getBytes());

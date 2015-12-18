@@ -1,4 +1,4 @@
-package com.czp.opensrource.redis.cmd;
+package com.czp.opensource.redis.cmd;
 
 import org.glassfish.grizzly.Buffer;
 
@@ -16,6 +16,7 @@ public interface Replay {
 	byte[] CRLF = { '\r', '\n' };
 	Replay OK = new StatusReplay("OK");
 	Replay PONG = new StatusReplay("PONG");
+	Replay PWD_ERR = new ErrorReplay("ERR invalid password");
 
 	int size();
 

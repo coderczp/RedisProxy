@@ -1,6 +1,6 @@
-package com.czp.opensrource.redis.cmd.handler;
+package com.czp.opensource.redis.cmd.handler;
 
-import com.czp.opensrource.redis.cmd.Replay;
+import com.czp.opensource.redis.cmd.Replay;
 
 /**
  * Function:处理Redis的各种命令<br>
@@ -24,6 +24,6 @@ public interface CmdHandler {
 	 * @param strCmd
 	 * @return
 	 */
-	Replay handle(String strCmd);
+	Replay handle(byte[][] args);
 
 }
